@@ -1,0 +1,17 @@
+<html>
+	<head>
+		<title>osu!nppp</title>
+		<h1>osu!nppp</h1>
+	</head>
+	<body>
+		<form>
+			<label for="token">Token:</label><br>
+			<input type="text" id="token" name="token" readonly="true">
+			<a href="https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=dl6k4oj0aiuyymn19opsclt6xyykbc&redirect_uri=https://jarran2r.github.io&scope=user%3Abot+user%3Aread%3Achat+user%3Awrite%3Achat&force_verify=true"><button type="button" id="authorize">Authorize</button><br></a>
+			<label for="username">Chat channel:</label><br>
+			<input type="text" id="username" name="username">
+			<button type="button" onclick="connectBot()" id="connect">Connect</button>
+		</form>
+	</body>
+	<script src="bot.js"></script>
+</html>
