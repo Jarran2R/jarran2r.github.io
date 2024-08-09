@@ -3,14 +3,25 @@ const CLIENT_ID = 'dl6k4oj0aiuyymn19opsclt6xyykbc';
 var BOT_USER_ID; // This is the User ID of the chat bot
 var CHAT_CHANNEL_USER_ID; // This is the User ID of the channel that the bot will join and listen to chat messages of
 
+function verifyUrl() {
+    let hash;
+    try {
+        hash = window.location.hash.split('access_token=')[1].split('&')[0];
+    } catch (error) {
+        hash = ""
+    }
+    return hash;
+}
 
-const OAUTH_TOKEN = window.location.hash.split('access_token=')[1].split('&')[0];
+const OAUTH_TOKEN = verifyUrl();
+
 document.getElementById("token").value = OAUTH_TOKEN;
-console.log(OAUTH_TOKEN);
+console.log("OAuth Token: ", OAUTH_TOKEN);
 
 const EVENTSUB_WEBSOCKET_URL = 'wss://eventsub.wss.twitch.tv/ws';
 var websocketClient;
 var websocketSessionID;
+var timeThen;
 
 // Start executing the bot from here
 function connectBot() {
@@ -19,20 +30,24 @@ function connectBot() {
     document.getElementById("username").disabled = true;
     document.getElementById("connect").disabled = true;
     document.getElementById("connect").innerHTML = "Connecting";
-    (async () => {
-        // Verify that the authentication is valid
-        await getAuth();
-        await getUserId();
-        await getBotId();
+    if (OAUTH_TOKEN) {
+        (async () => {
+            // Verify that the authentication is valid
+            await getAuth();
+            await getUserId();
+            await getBotId();
 
-        // Start WebSocket client and register handlers
-        startWebSocketClient();
-    })();
+            // Start WebSocket client and register handlers
+            startWebSocketClient();
+        })();
+    } else {
+        console.error("No token provided")
+        disconnectBot();
+    }
 
     // WebSocket will persist the application loop until you exit the program forcefully
 
     async function getUserId() {
-        console.log(OAUTH_TOKEN);
         const response = await fetch(`https://api.twitch.tv/helix/users?login=${document.getElementById("username").value}`, {
             method: 'GET',
             headers: {
@@ -44,12 +59,14 @@ function connectBot() {
         let data = await response.json();
         if (response.status == 401) {
             console.error("No OAuth token provided");
+            disconnectBot();
         };
         try {
-            console.log(data.data[0].id);
         CHAT_CHANNEL_USER_ID = data.data[0].id;
+        console.log("Channel ID: ", CHAT_CHANNEL_USER_ID);
         } catch (error) {
             console.error("Invalid username, " + error);
+            disconnectBot();
         };
     };
 
@@ -65,12 +82,14 @@ function connectBot() {
         let data = await response.json();
         if (response.status == 401) {
             console.error("No OAuth token provided");
+            disconnectBot();
         }
         try {
-            console.log(data.data[0].id);
-        BOT_USER_ID = data.data[0].id;
+            BOT_USER_ID = data.data[0].id;
+            console.log("Bot ID: ", BOT_USER_ID);
         } catch (error) {
             console.error(error);
+            disconnectBot();
         }
     }
 
@@ -87,6 +106,7 @@ function connectBot() {
             let data = await response.json();
             console.error("Token is not valid. /oauth2/validate returned status code " + response.status);
             console.error(data);
+            disconnectBot();
         }
 
         console.log("Validated token.");
@@ -176,7 +196,6 @@ function connectBot() {
                         currentPp = ` ${play.pp.current.toFixed(2)}pp /`
                     }
                     return currentPp;
-                break;
             }
         }
 
@@ -221,10 +240,17 @@ function connectBot() {
                         switch (data.payload.event.message.text.trim()) {
                             // If so, send back "VoHiYo" to the chatroom
                             case "!nppp":
-                                sendChatMessage(`@${data.payload.event.chatter_user_name} | ${await fetchData("map")} |${await fetchData("pp")} 100%: ${await calculatePp(100)}pp, 99%: ${await calculatePp(99)}pp, 98%: ${await calculatePp(98)}pp, 95%: ${await calculatePp(95)}pp, 90%: ${await calculatePp(90)}pp`)
+                                const timeNow = new Date().getTime()
+                                if ((!timeThen) || (timeNow - timeThen > document.getElementById("cooldown").value * 1000)) {
+                                    sendChatMessage(`@${data.payload.event.chatter_user_name} | ${await fetchData("map")} |${await fetchData("pp")} 100%: ${await calculatePp(100)}pp, 99%: ${await calculatePp(99)}pp, 98%: ${await calculatePp(98)}pp, 95%: ${await calculatePp(95)}pp, 90%: ${await calculatePp(90)}pp`);
+                                    timeThen = timeNow;
+                                }
                                 break;
                             case "!np":
-                                sendChatMessage(`@${data.payload.event.chatter_user_name} | ${await fetchData("map")}`)
+                                if ((!timeThen) || (timeNow - timeThen > document.getElementById("cooldown").value * 1000)) {
+                                    sendChatMessage(`@${data.payload.event.chatter_user_name} | ${await fetchData("map")}`)
+                                    timeThen = timeNow;
+                                }
                             break;
                         }
 
@@ -285,6 +311,7 @@ function connectBot() {
             let data = await response.json();
             console.error("Failed to subscribe to channel.chat.message. API call returned status code " + response.status);
             console.error(data);
+            disconnectBot();
         } else {
             const data = await response.json();
             let button = document.getElementById("connect")
@@ -296,13 +323,17 @@ function connectBot() {
     }
     async function disconnectBot() {
         let button = document.getElementById("connect")
-        websocketClient.close();
+        try {
+            websocketClient.close();
+            console.log("Connection closed for " + EVENTSUB_WEBSOCKET_URL)
+        } catch (error) {
+            console.error("No WebSocket to close")
+        }
         document.getElementById("token").disabled = false
         document.getElementById("authorize").disabled = false
         document.getElementById("username").disabled = false
         button.disabled = false
         button.innerHTML = "Connect"
         button.onclick = function() { connectBot() };
-        console.log("Connection closed for " + EVENTSUB_WEBSOCKET_URL)
     }
 }

@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 	<head>
 		<title>osu!nppp</title>
@@ -6,11 +7,13 @@
 	<body>
 		<form>
 			<label for="token">Token:</label><br>
-			<input type="text" id="token" name="token" readonly="true">
+			<input type="password" id="token" name="token" readonly="true">
 			<a href="https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=dl6k4oj0aiuyymn19opsclt6xyykbc&redirect_uri=https://jarran2r.github.io&scope=user%3Abot+user%3Aread%3Achat+user%3Awrite%3Achat&force_verify=true"><button type="button" id="authorize">Authorize</button><br></a>
 			<label for="username">Chat channel:</label><br>
 			<input type="text" id="username" name="username">
-			<button type="button" onclick="connectBot()" id="connect">Connect</button>
+			<button type="button" onclick="connectBot()" id="connect">Connect</button><br>
+			<label for="cooldown">Cooldown (seconds):</label><br>
+			<input type="text" id="cooldown" name="cooldown" value="15">
 		</form>
 		<p>
 			so basically you click authorize and it'll bring you to a page to link the twitch account you wanna use for the bot (or just the streamer account like i like to do)<br>
@@ -18,7 +21,8 @@
 			<br>
 			if it appears to be stuck on "connecting" then something broke because amateur programmer ya know but you can just refresh and it should be fine<br>
 			<br>
-			<h1>also everything is client-sided so nothing is stored on a server</h1>
+			<h2>also everything is client-sided so nothing is stored on a server<br></h2>
+			<h1>tosu must be running for this to work</h1>
 		</p>
 	</body>
 	<script src="bot.js"></script>
